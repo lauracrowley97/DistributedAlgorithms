@@ -1,0 +1,4 @@
+grant codeBase "/Users/lauracrowley/IdeaProjects/Lab1a/src/" {
+    permission java.security.AllPermission;
+};
+
