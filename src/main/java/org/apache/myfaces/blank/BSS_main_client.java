@@ -34,7 +34,7 @@ public class BSS_main_client {
             Naming.rebind(ipPort1021 + "/process", process2);
 
             TimeUnit.SECONDS.sleep(30);
-            process1.broadcast(new Message("testing across machines", process1.getVClock()));
+            //process1.broadcast(new Message("testing across machines", process1.getVClock()));
 
         } catch(Exception e)  {
             System.out.println("Client Exception: "+e);

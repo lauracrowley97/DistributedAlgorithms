@@ -18,7 +18,7 @@ public class BSS extends UnicastRemoteObject implements BSS_RMI {
     private int[] vectorClock; // Vector clock to represent the state of the whole system by this process.
     private List<String> ipPortList = new ArrayList<String>(); // List of all the ip addresses of the other processes.
 
-    private int n = 2;
+   // private int n = 2;
 
 
     private Set<Message> buffer = new HashSet<Message>(); // Buffer to store not yet delivered messages
@@ -61,7 +61,8 @@ public class BSS extends UnicastRemoteObject implements BSS_RMI {
     }
 
     @Override
-    public void broadcast(Message m) throws RemoteException {
+    public void broadcast(Message m, Boolean Flag) throws RemoteException {
+
         //System.out.println("Broadcast");
 
         updLocalClock();
@@ -73,21 +74,69 @@ public class BSS extends UnicastRemoteObject implements BSS_RMI {
             // System.out.println(ipPortList.get(i) +"/process");
             //System.out.println(i);
             //System.out.println(indexLocalClock);
-            if(i != indexLocalClock){
-                try{
-                    System.out.println("Broadcasting from " + ipPortList.get(indexLocalClock) + "to process " + ipPortList.get(i));
-                    //System.out.println(ipPortList.get(i) +"/process");
-                    otherProcess = (BSS_RMI) Naming.lookup(ipPortList.get(i) +"/process"); //TESTING for 2 processes
-                    //System.out.println("Creating new message"+ m.getMessage() + m.getVectorClock());
-                    Message msgOut = new Message(m.getMessage(),m.getVectorClock());
+            if( i != indexLocalClock ){
+                System.out.println(Flag);
 
-                   // System.out.println("Message Created " + msgOut);
-                    otherProcess.receive(msgOut, indexLocalClock);
-                    //System.out.println("Message Received");
+                //process 0 sending to process 1 with NO DELAY
+                if (Flag == false && indexLocalClock == 0 && i == 1) {
+                    System.out.println("type A");
+                    try {
+                        System.out.println("Broadcasting from " + ipPortList.get(indexLocalClock) + "to process " + ipPortList.get(i));
+                        //System.out.println(ipPortList.get(i) +"/process");
+                        otherProcess = (BSS_RMI) Naming.lookup(ipPortList.get(i) + "/process"); //TESTING for 2 processes
+                        //System.out.println("Creating new message"+ m.getMessage() + m.getVectorClock());
+                        Message msgOut = new Message(m.getMessage(), m.getVectorClock());
 
-                }catch (Exception e) {
-                    System.out.println("Broadcast Exception: " + e);
+
+                        otherProcess.receive(msgOut, indexLocalClock);
+
+                    } catch (Exception e) {
+                        System.out.println("Broadcast Exception: " + e);
+                    }
                 }
+
+                //process 1 sends to process 0 and process 2 with NO DELAY
+                else if (Flag == false && indexLocalClock == 1 ) {
+                    System.out.println("type B");
+                    try {
+                        System.out.println("Broadcasting from " + ipPortList.get(indexLocalClock) + "to process " + ipPortList.get(i));
+                        //System.out.println(ipPortList.get(i) +"/process");
+                        otherProcess = (BSS_RMI) Naming.lookup(ipPortList.get(i) + "/process"); //TESTING for 2 processes
+                        //System.out.println("Creating new message"+ m.getMessage() + m.getVectorClock());
+                        Message msgOut = new Message(m.getMessage(), m.getVectorClock());
+
+
+                        otherProcess.receive(msgOut, indexLocalClock);
+
+                    } catch (Exception e) {
+                        System.out.println("Broadcast Exception: " + e);
+                    }
+                }
+
+                // Process 0 sends to process 2 WITH DELAY
+                else if (Flag == true && indexLocalClock == 0 && i ==2) {
+                    System.out.println("type C");
+
+                    try {
+                        TimeUnit.SECONDS.sleep(5);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    try {
+                        System.out.println("Broadcasting from " + ipPortList.get(indexLocalClock) + "to process " + ipPortList.get(i));
+                        //System.out.println(ipPortList.get(i) +"/process");
+                        otherProcess = (BSS_RMI) Naming.lookup(ipPortList.get(i) + "/process"); //TESTING for 2 processes
+                        //System.out.println("Creating new message"+ m.getMessage() + m.getVectorClock());
+                        Message msgOut = new Message(m.getMessage(), m.getVectorClock());
+
+
+                        otherProcess.receive(msgOut, indexLocalClock);
+
+                    } catch (Exception e) {
+                        System.out.println("Broadcast Exception: " + e);
+                    }
+                }
+
             }
         }
 
@@ -105,15 +154,17 @@ public class BSS extends UnicastRemoteObject implements BSS_RMI {
 
         System.out.println("Start receiving");
 
-
-        if (processID == 1) {
-            System.out.println("I am sleeping" + m.getMessage());
+/*
+        if (processID == 0 && indexLocalClock == 2) {
+            System.out.println("Process2 receives message 1 late" );
             try {
                 TimeUnit.SECONDS.sleep(5);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
+        */
+
             //System.out.println("Receiving message"+ m.getMessage() + Arrays.toString(m.getVectorClock()));
             /* check condition for delivery */
             if (deliveryCondition(m, processID)) {
@@ -121,9 +172,13 @@ public class BSS extends UnicastRemoteObject implements BSS_RMI {
                 System.out.println("Delivery condition met");
 
                 /* check for messages in buffer that can now be delivered as a result of  delivering the last message */
+                System.out.println(!buffer.isEmpty());
                 while (!buffer.isEmpty()) {
+                    System.out.println("in Buff");
+
                     for (Message oldMsg : buffer) {
                         if (deliveryCondition(oldMsg, processID)) {
+
 
                             deliver(oldMsg);
                         }
@@ -131,6 +186,8 @@ public class BSS extends UnicastRemoteObject implements BSS_RMI {
                 }
             } else {
                 buffer.add(m);
+                System.out.println(!buffer.isEmpty());
+                System.out.println("Adding message to buffer");
             }
         }
 
@@ -142,16 +199,19 @@ public class BSS extends UnicastRemoteObject implements BSS_RMI {
 
         System.out.println("Start delivering");
 
-
+         System.out.println(m.getMessage() + Arrays.toString(m.getVectorClock()));
         // update its own clock
         updateVClock(m);
 
         // print the message + the vector clock to confirm the HB relationship
-        System.out.println(m.getMessage() + Arrays.toString(m.getVectorClock()));
+
 
         // remove from the buffer
         if(buffer.contains(m)) {
+            System.out.println("From buffer");
+            deliver(m);
             buffer.remove(m);
+
         }
     }
 
@@ -185,10 +245,24 @@ public class BSS extends UnicastRemoteObject implements BSS_RMI {
      * @return TRUE, when the message received was indeed like expected
      */
     private boolean deliveryCondition(Message m, int index) {
-        // System.out.println("checkVectorClocks");
+        System.out.println("check Deliv condition");
+        System.out.println(m.getMessage() + Arrays.toString(m.getVectorClock()) + Arrays.toString(vectorClock));
+
         boolean deliverable = true;
-        if ((vectorClock[index] + increment != m.getVectorClock()[index])) {
-            deliverable = false;
+
+        for ( int i = 0; i < vectorClock.length; i ++) {
+            if (i == index) {
+                if ((vectorClock[index] + increment < m.getVectorClock()[index])) {
+                    System.out.println(vectorClock[index] + m.getVectorClock()[index]);
+                    System.out.println("B");
+                    deliverable = false;
+                }
+            }
+            else if (m.getVectorClock()[i] > vectorClock[i] ) {
+                    System.out.println(vectorClock[index] + m.getVectorClock()[index]);
+                    System.out.println("C");
+                    deliverable = false;
+            }
         }
         return deliverable;
     }
@@ -198,10 +272,12 @@ public class BSS extends UnicastRemoteObject implements BSS_RMI {
      * @param m
      */
     private void updateVClock(Message m) {
-        //System.out.println("Update vectorClock");
+        System.out.println("Update vectorClock for process of index " + indexLocalClock);
         int length = m.getVectorClock().length;
         for (int i = 0; i < length; i++) {
+            System.out.println( vectorClock[i] + " : "+ m.getVectorClock()[i]);
             if ((vectorClock[i]) < m.getVectorClock()[i]) {
+
                 vectorClock[i] = m.getVectorClock()[i];
             }
         }

@@ -10,7 +10,7 @@ public interface BSS_RMI extends Remote {
 
 
     //For lab
-    public void broadcast (Message m) throws RemoteException;
+    public void broadcast (Message m, Boolean Flag) throws RemoteException;
     public void receive (Message m, int processID) throws RemoteException;
     public void deliver (Message m) throws RemoteException;
 
