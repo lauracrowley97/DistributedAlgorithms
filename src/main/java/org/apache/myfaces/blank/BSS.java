@@ -30,7 +30,7 @@ public class BSS extends UnicastRemoteObject implements BSS_RMI {
     */
 
     public BSS(List<String> ipPortList, String currentIpPort) throws RemoteException{
-        //System.out.println("Process constructor");
+        //System.out.println("Process constructor: ");
 
         // initialise vectorClock ??
 
